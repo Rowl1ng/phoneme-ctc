@@ -27,6 +27,7 @@ def train(ENV, args):
         processed_train_data = pickle.load(open(processed_train_data_path, 'r'))
         processed_test_data = pickle.load(open(processed_test_data_path, 'r'))
     else:
+        # 如果还没处理过原始数据就先处理，再保存
         train_wav_files, train_phn_files = load_data(ENV.train_data)
         print('Process train data...')
         processed_train_data = process_data(train_wav_files, train_phn_files)

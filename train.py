@@ -12,7 +12,7 @@ from tensorflow.python.ops import ctc_ops
 from phoneme_set import phoneme_set_39
 from utils import process_wav
 
-
+from params import Params as P
 num_features = 39 # 13 mfcc + 26 logfbank
 num_classes = 40 # 39 phonemes + blank
 
@@ -25,7 +25,7 @@ batch_size = 16
 learning_rate = 0.001
 momentum = 0.9
 
-def train_model(ENV, train_data=None, test_data=None, decode=False, file_decode=False):
+def train_model(train_data=None, test_data=None, decode=False, file_decode=False):
     graph = tf.Graph()
     with graph.as_default():
         # e.g: log filter bank or MFCC features
@@ -84,9 +84,10 @@ def train_model(ENV, train_data=None, test_data=None, decode=False, file_decode=
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
 
+
     with tf.Session(graph=graph, config=tf.ConfigProto(gpu_options=gpu_options)) as session:
         session.run(tf.global_variables_initializer())
-        saver = tf.train.Saver(tf.all_variables(), max_to_keep=0)
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=0)
         if not decode:
             ckpt = tf.train.get_checkpoint_state(ENV.output)
             if ckpt:
@@ -100,6 +101,8 @@ def train_model(ENV, train_data=None, test_data=None, decode=False, file_decode=
                 start = time.time()
                 train_cost = 0
                 train_ler = 0
+                # Create the feed_dict for the placeholders filled with the next
+                # `batch size` examples.
                 for i in range(num_batch-1):
                     feed = {
                         inputs: train_data[i][0],
@@ -116,7 +119,7 @@ def train_model(ENV, train_data=None, test_data=None, decode=False, file_decode=
 
                 train_cost /= num_batch
                 train_ler /= num_batch
-                saver.save(session, os.path.join(ENV.output, 'best.ckpt'), global_step=curr_epoch)
+                saver.save(session, os.path.join(P.OUTPUT, 'best.ckpt'), global_step=curr_epoch)
 
                 feed_test = {
                     inputs: test_data[0][0],
@@ -129,12 +132,14 @@ def train_model(ENV, train_data=None, test_data=None, decode=False, file_decode=
                 log = "Epoch {}/{}, test_cost {}, test_ler {}"
                 logging.info(log.format(curr_epoch+1, num_epochs, test_cost, test_ler))
         else:
-            ckpt = tf.train.get_checkpoint_state(ENV.model_path)
+            # DECODE
+            ckpt = tf.train.get_checkpoint_state(P.MODEL_PATH)
             print('load', ckpt.model_checkpoint_path)
             saver = tf.train.Saver()
             saver.restore(session, ckpt.model_checkpoint_path)
 
             while True:
+                # 准备输入文件
                 if file_decode:
                     wav_file = raw_input('Enter the wav file path:')
                 else:
@@ -157,9 +162,10 @@ def train_model(ENV, train_data=None, test_data=None, decode=False, file_decode=
                     seq_len: batch_seq_len
                 }
                 d, oc = session.run([decoded[0], outputs], feed_dict=feed)
-                dsp = d.shape
+                dsp = d.shape #[16 86]
                 res = []
-                for label in d.values[:dsp[1]]:
+                print size(oc)
+                for label in d.values[:dsp[1]]: # id of phoneme
                     for k, v in phoneme_set_39.items():
                         if v == label + 1:
                             res.append(k)           

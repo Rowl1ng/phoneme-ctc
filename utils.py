@@ -1,3 +1,4 @@
+#-*- coding:utf-8 -*
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -32,7 +33,7 @@ def load_test_data(test_path):
             wav_files.append(os.path.join(dirpath, f))
     return wav_files
 
-
+# 組合mfcc和fbank特征
 def join_features(mfcc, fbank):
     features = np.concatenate((mfcc, fbank), axis=1)
     return features
